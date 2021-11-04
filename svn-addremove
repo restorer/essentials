@@ -1,0 +1,24 @@
+#!/usr/bin/ruby
+
+for_real = (ARGV.first == 'y')
+has_files = false
+output = `svn st`
+
+output.split(/\r|\n/).each do |line|
+	mt = line.match(/^([?!])\s+(.+)$/)
+	next if mt.nil?
+
+	if mt[1] == '?'
+		puts "A #{mt[2]}"
+		`svn add #{mt[2]}` if for_real
+	else
+		puts "D #{mt[2]}"
+		`svn rm #{mt[2]}` if for_real
+	end
+
+	has_files = true
+end
+
+if has_files && !for_real
+	puts 'Use "svn-addremove y" to addremove for real'
+end

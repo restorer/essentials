@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "To search through git history by content use something like this:"
+echo " 1. git rev-list --all | xargs git grep -e <regexp>"
+echo " 2. git grep -e <regexp> \$(git rev-list --all) -- '*.php'"
+echo " 3. git rev-list --all | (while read rev ; do git grep -e <regexp> \$rev -- '*.php' ; done)"

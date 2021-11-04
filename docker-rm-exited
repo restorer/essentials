@@ -1,0 +1,3 @@
+#!/bin/sh
+
+[ "$(docker ps -qf 'status=exited')" != "" ] && docker ps -qf 'status=exited' | xargs -n 1 docker rm

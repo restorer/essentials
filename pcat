@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Use "pygmentize -L styles" to list all available styles
+
+pygmentize -f terminal256 -O style=monokai -g "$@"

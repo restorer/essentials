@@ -1,0 +1,9 @@
+#!/bin/bash
+
+INP="$(zenity --entry --width=320 --text='Hexadecimal (to percents)' 2> /dev/null)"
+[ "$INP" = "" ] && exit
+
+RES="$(printf '%02d' $(( "0x$INP" * 100 / 255 )))"
+
+echo -n "$RES" | xclip -selection c
+zenity --info --width=400 --text="<span size='xx-large' face='monospace'>$RES</span>\n\n(copied to clipboard)" 2> /dev/null

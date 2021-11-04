@@ -1,0 +1,3 @@
+#!/bin/sh
+
+find .git/hooks -type f ! -name '*.sample' -exec rm {} \;

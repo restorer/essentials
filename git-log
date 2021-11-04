@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# git log --format=format:"%C(auto)%H %C(green)%an <%ae>%C(reset) %s"
+git log --format=format:"%C(auto)%H %C(green)%an%C(reset) %s"

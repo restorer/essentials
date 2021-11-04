@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+K_ARGS="-t ed25519"
+
+if [ "$1" = "--rsa" ] ; then
+    shift
+    K_ARGS="-t rsa -b 4096"
+fi
+
+K_FILE="$1"
+K_COMMENT="$2"
+
+if [ "$K_FILE" = "" ] || [ "$K_COMMENT" = "" ] ; then
+    echo "Usage: $0 [--rsa] <filename> <comment>"
+    exit 1
+fi
+
+cd "$HOME/.ssh"
+ssh-keygen ${K_ARGS} -f "$K_FILE" -C "$K_COMMENT"

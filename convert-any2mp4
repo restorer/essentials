@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ "$1" = "" || "$2" = "" ]] ; then
+	echo "Usage: $0 <infile> <outfile.mp4>"
+	exit
+fi
+
+ffmpeg -i "$1" -vcodec copy -acodec copy "$2"

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ "$1" = "" ] || [ "$2" = "" ] ; then
+    echo "Usage: $0 <input video> <output video>"
+    exit 1
+fi
+
+# https://unix.stackexchange.com/questions/28803/how-can-i-reduce-a-videos-size-with-ffmpeg
+exec ffmpeg -i "$1" -b 400k "$2"

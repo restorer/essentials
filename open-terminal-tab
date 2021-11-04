@@ -1,0 +1,54 @@
+#!/bin/bash
+
+if [ "$(which wmctrl 2> /dev/null)" = "" ] ; then
+    echo '"wmctrl" is required (x11-misc/wmctrl).'
+    exit 1
+fi
+
+if [ "$(which xdotool 2> /dev/null)" = "" ] ; then
+    echo '"xdotool" is required (x11-misc/xdotool).'
+    exit 1
+fi
+
+for PID in $(ps -e -o pid,cmd= | grep konsole | grep -v grep | awk '{ print $1 }') ; do
+    WID="$(wmctrl -lp | awk -v pid="$PID" '$3==pid { print $1; exit }')"
+    [ "$WID" != "" ] && break
+done
+
+if [ "$WID" = "" ] ; then
+    for PID in $(ps -e -o pid,cmd= | grep gnome-terminal-server | grep -v grep | awk '{ print $1 }') ; do
+        WID="$(wmctrl -lp | awk -v pid="$PID" '$3==pid { print $1; exit }')"
+        [ "$WID" != "" ] && break
+    done
+fi
+
+if [ "$WID" = "" ] ; then
+    for PID in $(ps -e -o pid,cmd= | grep x-terminal-emulator | grep -v grep | awk '{ print $1 }') ; do
+        WID="$(wmctrl -lp | awk -v pid="$PID" '$3==pid { print $1; exit }')"
+        [ "$WID" != "" ] && break
+    done
+fi
+
+if [ "$WID" != "" ] ; then
+    wmctrl -i -a "$WID"
+    xdotool sleep 0.25
+    xdotool key ctrl+shift+t
+    xdotool sleep 0.1
+    xdotool type --delay=1 --clearmodifiers "cd \"$PWD\""
+    xdotool key Return
+elif [ "$(which konsole 2> /dev/null)" != "" ] ; then
+    konsole &
+elif [ "$(which x-terminal-emulator 2> /dev/null)" != "" ] ; then
+    x-terminal-emulator &
+else
+    echo '"konsole" or "x-terminal-emulator" is required.'
+    exit 1
+fi
+
+if [[ "$*" != "" ]] ; then
+    xdotool sleep 0.1
+    xdotool type --delay=1 --clearmodifiers " $*"
+    xdotool key Return
+fi
+
+exit 0

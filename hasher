@@ -1,0 +1,157 @@
+#!/bin/bash
+
+ui_check () {
+    if [ "$(which sha1sum 2> /dev/null)" = "" ] ; then
+        echo '"sha1sum" is required.'
+        [ "$(uname -s)" = "Darwin" ] && echo 'Use "brew install coreutils" to install it.'
+        exit 1
+    fi
+
+    if [ "$(uname -s)" = "Darwin" ] ; then
+        IS_DARWIN=1
+        return
+    fi
+
+    [ "$(which zenity 2> /dev/null)" != "" ] && HAS_ZENITY=1
+    [ "$(which kdialog 2> /dev/null)" != "" ] && HAS_KDIALOG=1
+
+    if [ "${HAS_ZENITY}${HAS_KDIALOG}" = "" ] ; then
+        echo '"zenity" or "kdialog" is required or user interraction.'
+        exit 1
+    fi
+
+    [ "$(which xsel 2> /dev/null)" != "" ] && HAS_XSEL=1
+    [ "$(which xclip 2> /dev/null)" != "" ] && HAS_XCLIP=1
+
+    if [ "${HAS_XSEL}${HAS_XCLIP}" = "" ] ; then
+        echo '"xsel" (preferred) or "xclip" is required to be able to copy to the clipboard.'
+        exit 1
+    fi
+}
+
+ui_input () {
+    if [ "$IS_DARWIN" != "" ] ; then
+        osascript -e "text returned of (display dialog \"$1\" buttons { \"Cancel\", \"OK\" } default button \"OK\" cancel button \"Cancel\" default answer \"\" with icon note)"
+    elif [ "$HAS_ZENITY" != "" ] ; then
+        zenity --entry --width=320 --text="$1" 2> /dev/null
+    else
+        kdialog --inputbox "$1" 2> /dev/null
+    fi
+}
+
+ui_error () {
+    if [ "$IS_DARWIN" != "" ] ; then
+        osascript -e "display dialog \"$1\" buttons { \"OK\" } default button \"OK\" with icon stop" > /dev/null
+    elif [ "$HAS_ZENITY" != "" ] ; then
+        zenity --error --width=240 --text="<span size='xx-large'>$1</span>" 2> /dev/null
+    else
+        kdialog --error "$1" 2> /dev/null
+    fi
+}
+
+ui_info () {
+    if [ "$IS_DARWIN" != "" ] ; then
+        osascript -e "display alert \"$1\" message \"$2\" buttons { \"OK\" } default button \"OK\" as informational" > /dev/null
+    elif [ "$HAS_ZENITY" != "" ] ; then
+        zenity --info --width=400 --text="<span size='xx-large' face='monospace'>$1</span>\n\n$2" 2> /dev/null
+    else
+        kdialog --msgbox "$1\n$2" 2> /dev/null
+    fi
+}
+
+ui_clipboard () {
+    if [ "$IS_DARWIN" != "" ] ; then
+        echo -n "$1" | pbcopy
+    elif [ "$HAS_XSEL" != "" ] ; then
+        # "xclip" is not working with clipboard sharing in VMware, so "xsel" is preferred
+        xsel -d -p
+        echo -n | xsel -s
+        echo -n "$1" | xsel -i -b
+    else
+        echo -n "$1" | xclip -selection clipboard
+    fi
+}
+
+[ "$(uname -s)" = "Darwin" ] && PATH="/usr/local/bin:$PATH" # .profile isn't taken into account when running from Alfred
+ui_check
+
+PHRASE="$(ui_input "Phrase")"
+
+if ! [[ "$PHRASE" =~ ^[[:space:]]*([^ ]+)([[:space:]]+([0-9uU!@#$%^&*()]+))?[[:space:]]*$ ]] ; then
+    ui_error "Unrecognized phrase format"
+    exit 1
+fi
+
+TEXT="${BASH_REMATCH[1]}"
+SPEC="${BASH_REMATCH[3]}"
+
+for BNAME in "$HOME/.config/eightsines.hasher"/* ; do
+    [ ! -f "$BNAME" ] && continue
+
+    BVALUE="$(cat "$BNAME")"
+    BNAME="$(basename "$BNAME")"
+
+    TEXT="${TEXT/\*$BNAME/$BVALUE}"
+done
+
+if [[ "$TEXT" == *"*"* ]] ; then
+    ui_error "Unknown bookmark"
+    exit 1
+fi
+
+HASH="$(echo -n "$TEXT" | sha1sum | sed 's/[ +\-]*$//g')"
+
+[[ "$SPEC" =~ [0-9]+ ]] && SPEC_LENGTH="$BASH_REMATCH"
+[[ "$SPEC" =~ [uU] ]] && SPEC_UPPERCASE=1
+[[ "$SPEC" =~ ([!@#$%^&*()]) ]] && SPEC_SYMBOL="$BASH_REMATCH"
+
+if [ "$SPEC_LENGTH" != "" ] ; then
+    HASH="${HASH:0:$SPEC_LENGTH}"
+fi
+
+if [ "$SPEC_UPPERCASE" != "" ] ; then
+    if [[ "$HASH" =~ [^0-9] ]] ; then
+        HASH="$(echo -n "$HASH" | perl -ne 'print $1 . uc($2) . $3 if /^(.*?)([^0-9])(.*)$/')"
+    else
+        HASH="${HASH}U"
+    fi
+fi
+
+if [ "$SPEC_SYMBOL" != "" ] ; then
+    HASH="${HASH}${SPEC_SYMBOL}"
+fi
+
+if [ "$HASH" = "" ] ; then
+    ui_error "Empty result"
+    exit 1
+fi
+
+HASH_LEN="${#HASH}"
+
+if [ "$HASH_LEN" = "4" ] ; then
+    FORMATTED="$(echo -n "$HASH" | sed -E -e 's/(.{1,2})/\1 /g' | sed -e 's/[[:space:]]*$//')"
+elif [[ "$HASH_LEN" = "5" || "$HASH_LEN" = "6" || "$HASH_LEN" = "9" ]] ; then
+    FORMATTED="$(echo -n "$HASH" | sed -E -e 's/(.{1,3})/\1 /g' | sed -e 's/[[:space:]]*$//')"
+else
+    FORMATTED="$(echo -n "$HASH" | sed -E -e 's/(.{1,4})/\1 /g' | sed -e 's/[[:space:]]*$//')"
+
+    IFS_OLD="$IFS"
+    IFS=" "
+    read -r -a PARTS <<< "$FORMATTED"
+    IFS="$IFS_OLD"
+
+    PARTS_LEN="${#PARTS[@]}"
+
+    if [ "$PARTS_LEN" = "6" ] ; then
+        FORMATTED="$(echo -n "$FORMATTED" | xargs -n 3)"
+    elif [[ "$PARTS_LEN" = "9" || "$PARTS_LEN" = "10" ]] ; then
+        FORMATTED="$(echo -n "$FORMATTED" | xargs -n 5)"
+    else
+        FORMATTED="$(echo -n "$FORMATTED" | xargs -n 4)"
+    fi
+fi
+
+ui_clipboard "$HASH"
+ui_info "$FORMATTED" "(copied to clipboard)"
+
+exit 0

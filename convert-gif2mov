@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [[ "$1" = "" || "$2" = "" ]] ; then
+	echo "Usage: $0 <infile.gif> <outfile.mov> [framerate]"
+	echo "       framerate is 12 by default"
+	exit
+fi
+
+FRAMERATE="12"
+
+if [ "$3" != "" ] ; then
+	FRAMERATE="$3"
+fi
+
+ffmpeg -i "$1" -r "$FRAMERATE" "$2"

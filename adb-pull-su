@@ -1,0 +1,22 @@
+#!/bin/bash
+
+SRCPATH="$1"
+DSTPATH="$2"
+
+if [ "$SRCPATH" == "" ] ; then
+    echo "Usage: $0 <android-path> [destination-path]"
+    exit
+fi
+
+SRCNAME="$(basename "$SRCPATH")"
+
+if [ "$DSTPATH" == "" ] ; then
+    DSTPATH="$SRCNAME"
+elif [ -d "$DSTPATH" ] ; then
+    DSTPATH="${DSTPATH}/${DSTNAME}"
+fi
+
+
+adb shell su -c "cp \"${SRCPATH}\" \"/sdcard/__pull__${SRCNAME}\""
+adb pull "/sdcard/__pull__${SRCNAME}" "$DSTPATH"
+adb shell rm "/sdcard/__pull__${SRCNAME}"

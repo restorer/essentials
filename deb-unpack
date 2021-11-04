@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$1" = "" ] ; then
+    echo "Usage: $0 <deb>"
+    exit 1
+fi
+
+exec ar x "$1"

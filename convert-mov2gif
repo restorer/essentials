@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [[ "$1" = "" || "$2" = "" ]] ; then
+	echo "Usage: $0 <infile.mov> <outfile.gif> [framerate]"
+	echo "       framerate is 12 by default"
+	exit
+fi
+
+FRAMERATE="12"
+
+if [ "$3" != "" ] ; then
+	FRAMERATE="$3"
+fi
+
+# pass "--delay=3" to gifsicle to speedup result gif
+## ffmpeg -i "$1" -r "$FRAMERATE" -f gif -pix_fmt rgb8 - | gifsicle --loop --optimize=3 > "$2"
+
+ffmpeg -i "$1" -r "$FRAMERATE" -vf scale=-1:640 -f gif -pix_fmt rgb8 - | gifsicle --loop --optimize=3 --delay=4 > "$2"
