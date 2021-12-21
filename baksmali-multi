@@ -1,0 +1,18 @@
+#!/bin/bash
+
+do_baksmali() {
+	echo "Baksmaling $2 ..."
+	baksmali -o "$1" "$2"
+}
+
+if [ "$1" = "-j" ] || [ "$1" = "--join" ] ; then
+	for NAME in $(find . -name 'classes*.dex' | sort -n) ; do
+		do_baksmali smali "$NAME"
+	done
+else
+	[ -e classes.dex ] && do_baksmali smali classes.dex
+
+	for NAME in $(find . -name 'classes*.dex' ! -name classes.dex | sed 's/^\.\///' | sed 's/\.dex$//' | sort -n) ; do
+		do_baksmali "smali_${NAME}" "${NAME}.dex"
+	done
+fi
